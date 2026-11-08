@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { YoloStore } from './store.js';
-import { makePrepare, launchContext, installPreCommit, onPurge, wantsYolo, HOOK_TYPES } from './hooks.js';
+import { makePrepare, launchContext, installPreCommit, onPurge, wantsYolo, pruneMergedBranches, HOOK_TYPES } from './hooks.js';
 
 function setup({ config = true } = {}) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'yolo-hooks-'));
@@ -124,4 +124,74 @@ test('onPurge forgets the card', () => {
   store.enrol('s1', { repo: '/repo' });
   onPurge({ sessionId: 's1', host });
   assert.equal(store.get('s1'), null);
+});
+
+// Real git, fake gh: a bare "origin", a clone with three branches whose
+// remotes are gone, and one still pushed.
+async function repoWithBranches() {
+  const { execFile } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  // Inside a git hook (pre-commit runs these tests on commit) git exports
+  // GIT_DIR, GIT_INDEX_FILE and friends; inherited, they would point these
+  // commands at the outer repo. Strip them.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+  const exe = promisify(execFile);
+  const run = (cmd, args, opts = {}) => exe(cmd, args, { ...opts, env });
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'yolo-prune-'));
+  const origin = path.join(tmp, 'origin.git');
+  const repo = path.join(tmp, 'repo');
+  const git = (cwd, ...args) => run('git', ['-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { cwd });
+  await run('git', ['init', '-q', '--bare', '-b', 'main', origin]);
+  await run('git', ['clone', '-q', origin, repo]);
+  await git(repo, 'config', 'user.email', 't@example.com');
+  await git(repo, 'config', 'user.name', 't');
+  await git(repo, 'commit', '-q', '--allow-empty', '-m', 'init');
+  await git(repo, 'push', '-q', 'origin', 'main');
+  const sha = {};
+  for (const b of ['merged', 'unpushed-after-merge', 'never-a-pr', 'still-open']) {
+    await git(repo, 'switch', '-q', '-c', b, 'main');
+    await git(repo, 'commit', '-q', '--allow-empty', '-m', b);
+    await git(repo, 'push', '-q', '-u', 'origin', b);
+    sha[b] = (await git(repo, 'rev-parse', 'HEAD')).stdout.trim();
+  }
+  // Work committed locally after the PR merged: the tip no longer matches.
+  await git(repo, 'switch', '-q', 'unpushed-after-merge');
+  await git(repo, 'commit', '-q', '--allow-empty', '-m', 'more work');
+  await git(repo, 'switch', '-q', 'main');
+  // GitHub deleted these on merge (or someone did by hand).
+  for (const b of ['merged', 'unpushed-after-merge', 'never-a-pr']) await git(repo, 'push', '-q', 'origin', '--delete', b);
+  const merged = { merged: sha.merged, 'unpushed-after-merge': sha['unpushed-after-merge'] };
+  const exec = (cmd, args, opts) => (cmd === 'gh'
+    ? Promise.resolve({ stdout: JSON.stringify(merged[args[args.indexOf('--head') + 1]] ? [{ headRefOid: merged[args[args.indexOf('--head') + 1]] }] : []) })
+    : run(cmd, args, opts));
+  const branches = async () => (await git(repo, 'branch', '--format=%(refname:short)')).stdout.split('\n').filter(Boolean).sort();
+  return { repo, exec, branches };
+}
+
+test('pruneMergedBranches deletes only branches whose merged PR head is the local tip', async () => {
+  const { repo, exec, branches } = await repoWithBranches();
+  assert.deepEqual(await pruneMergedBranches(repo, { exec }), ['merged']);
+  assert.deepEqual(await branches(), ['main', 'never-a-pr', 'still-open', 'unpushed-after-merge']);
+});
+
+test('pruneMergedBranches leaves a branch checked out in a worktree', async () => {
+  const { repo, exec, branches } = await repoWithBranches();
+  await exec('git', ['worktree', 'add', '-q', path.join(repo, '..', 'wt'), 'merged'], { cwd: repo });
+  assert.deepEqual(await pruneMergedBranches(repo, { exec }), []);
+  assert.ok((await branches()).includes('merged'));
+});
+
+test('prepare prunes as housekeeping and never warns about it', async () => {
+  const { repo, store, host, logs } = setup();
+  const calls = [];
+  const exec = async (cmd, args) => {
+    calls.push([cmd, ...args].join(' '));
+    if (args[0] === 'for-each-ref') throw new Error('boom');
+    return { stdout: '' };
+  };
+  const r = await makePrepare({ exec })({ sessionId: 's1', repoRoot: repo, ext: { enabled: true }, host });
+  assert.equal(r, undefined);
+  assert.ok(calls.includes('git fetch --prune --quiet'));
+  assert.match(logs.join('\n'), /branch prune skipped/);
+  assert.ok(store.get('s1'));
 });

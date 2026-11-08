@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   branchRuleset, tagRuleset, contains, rulesetSatisfies, mergeRuleset, mergeSettings,
-  buildControls, runBaseline, detectRequiredChecks, BRANCH_RULESET, TAG_RULESET, GITHUB_ACTIONS_APP_ID,
+  buildControls, runBaseline, detectRequiredChecks, planLimited, BRANCH_RULESET, TAG_RULESET, GITHUB_ACTIONS_APP_ID,
 } from './baseline.js';
 
 // An in-memory GitHub: just enough REST for the controls, recording writes.
@@ -178,4 +178,16 @@ test('detectRequiredChecks reads GitHub Actions checks off the latest PR head', 
   });
   assert.deepEqual(await detectRequiredChecks(gh, 'o/r'), ['pre-commit', 'test (22)']);
   assert.deepEqual(await detectRequiredChecks(fakeGitHub().gh, 'o/r'), []);
+});
+
+test('a plan-limited refusal reads as unavailable, not an error', async () => {
+  const { gh } = fakeGitHub();
+  const paywalled = { id: 'branch-ruleset', label: 'Ruleset', check: async () => { throw Object.assign(new Error('gh: Upgrade to GitHub Pro or make this repository public to enable this feature. (HTTP 403)'), { status: 403 }); }, apply: async () => {} };
+  const broken = { id: 'x', label: 'X', check: async () => { throw new Error('gh: Bad credentials (HTTP 401)'); }, apply: async () => {} };
+  const [a, b] = await runBaseline(gh, ctx, { controls: [paywalled, broken] });
+  assert.equal(a.action, 'unavailable');
+  assert.match(a.detail, /public repo, GitHub Pro\/Team, or Advanced Security/);
+  assert.equal(b.action, 'error');
+  assert.equal(planLimited(new Error('Secret scanning is not available for this repository')), true);
+  assert.equal(planLimited(new Error('Not Found')), false);
 });
