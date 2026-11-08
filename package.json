@@ -1,6 +1,6 @@
 {
   "name": "agent-wrangler-yolo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Lets an opted-in Agent Wrangler session own a repo end to end: design, delegate, merge, release and harden. An Agent Wrangler extension.",
