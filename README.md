@@ -35,6 +35,23 @@ releases and keeps the repo hardened. It asks you only at a short list of hard s
   bypass the gate, conventional commits for SemVer, review before merge, and the hard stops that
   go to you.
 
+## Walking away
+
+While a YOLO session is working, the Mac stays awake: the extension holds a macOS power
+assertion (`caffeinate -ims`) so idle sleep can't halt the session or expire the credentials it
+relies on. It keeps holding it for a grace period after the session's last activity (default 30
+minutes), so a session that ended its turn to wait for CI, auto-fix and auto-merge can still be woken
+by the wrangler's PR watch. When no YOLO session has been active for that long, it lets go and the
+Mac sleeps as usual.
+
+- **The screen still locks** by default. Only sleep is prevented, and work carries on behind the
+  lock screen. Turn on **Keep the display on too** to stop the display sleeping as well (so the
+  screen saver and lock never start), at the cost of leaving an unattended Mac unlocked.
+- **Closing the lid still sleeps the Mac**, unless it's on power with an external display.
+- `caffeinate` watches the wrangler server's pid, so if the server stops, the Mac can sleep again.
+  Turning the extension off releases it immediately. It does nothing on other platforms.
+- `pmset -g assertions` shows it while it's held.
+
 ## Repo hardening
 
 `yolo_audit_repo` checks the session's repo against the baseline below; `yolo_harden_repo` applies it
@@ -109,6 +126,9 @@ keeps failing the same check.
 | Require signed commits | off | Adds signed commits to the default-branch ruleset. |
 | Live child sessions per session | 5 | How many `yolo_spawn` children one session may have running. |
 | Fix attempts before escalating | 3 | Retries on the same failing check before asking you. |
+| Let the Mac sleep during YOLO work | off | Turn on to stop the extension keeping the Mac awake. |
+| Keep the display on too | off | Also stop the display sleeping, so the screen never locks. |
+| Stay awake after activity (minutes) | 30 | How long the Mac stays awake after a YOLO session's last activity. |
 
 ## Install
 
