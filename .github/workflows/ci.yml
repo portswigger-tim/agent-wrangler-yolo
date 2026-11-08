@@ -95,6 +95,7 @@ jobs:
             pypi.org
             files.pythonhosted.org
             proxy.golang.org
+            sum.golang.org
             storage.googleapis.com
           http-filter: |
             github.com:
@@ -111,6 +112,8 @@ jobs:
             files.pythonhosted.org:
               "*": GET, HEAD
             proxy.golang.org:
+              "*": GET, HEAD
+            sum.golang.org:
               "*": GET, HEAD
             storage.googleapis.com:
               "*": GET, HEAD
