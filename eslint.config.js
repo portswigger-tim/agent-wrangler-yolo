@@ -12,4 +12,6 @@ export default [
       'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
+  // The browser half runs in the board page.
+  { files: ['public/**/*.js'], ignores: ['public/**/*.test.js'], languageOptions: { globals: { ...globals.browser } } },
 ];

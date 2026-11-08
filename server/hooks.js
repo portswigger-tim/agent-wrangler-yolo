@@ -47,7 +47,7 @@ async function guarded(name, host, fn, fallback) {
 }
 
 function envFor(row) {
-  return { AW_YOLO: '1', AW_YOLO_REPO: row.repo };
+  return { AW_YOLO: '1', AW_YOLO_REPO: row.repo, ...(row.parent ? { AW_YOLO_PARENT: row.parent } : {}) };
 }
 
 // New dispatch only, before the worktree is cut: enrol the card against its
@@ -59,12 +59,16 @@ export function makePrepare({ exec = run } = {}) {
     if (!repoRoot) return { abort: 'YOLO needs a git repository: launch the session inside one.' };
     return guarded('session.prepare', host, async () => {
       const store = host.stores.yolo;
-      const parent = spawnedBy ? store.get(spawnedBy) : null;
+      // yolo_spawn names the parent in the slice (an extension spawn has no
+      // core spawnedBy); spawn_session and the dialog set spawnedBy.
+      const parentId = (typeof ext.parent === 'string' && ext.parent) || spawnedBy || null;
+      const parent = parentId ? store.get(parentId) : null;
+      if (typeof ext.parent === 'string' && !parent) return { abort: `YOLO: parent session ${ext.parent} is not in YOLO mode.` };
       // A child may only work on its parent's repo.
       if (parent && parent.repo !== repoRoot) {
         return { abort: `YOLO: a child of a YOLO session must work in ${parent.repo}, not ${repoRoot}.` };
       }
-      store.enrol(sessionId, { repo: repoRoot, parent: parent ? spawnedBy : null });
+      store.enrol(sessionId, { repo: repoRoot, parent: parent ? parentId : null });
       const warnings = [];
       await exec('git', ['pull', '--ff-only', '--quiet'], { cwd: repoRoot, timeout: 20_000 })
         .catch((err) => warnings.push(`YOLO: git pull --ff-only failed, the worktree may branch from a stale base: ${(err.stderr || err.message || '').trim().split('\n')[0]}`));

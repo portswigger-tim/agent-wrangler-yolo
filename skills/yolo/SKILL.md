@@ -23,10 +23,18 @@ before merging, releasing or changing repo settings.
   - Do it yourself when it's small or tightly coupled to what you're doing.
   - Use a **subagent** (Agent tool) for a bounded search, review or analysis
     whose result you only need summarised.
-  - Spawn a **child session** for an independent workstream that deserves its
-    own branch, PR and context window. Brief it fully: outcome, constraints,
-    files, how you'll judge it done. Children cannot ask the human; they mail
-    you, and you answer. Review and merge their PRs as you would your own.
+  - Spawn a **child session** with `yolo_spawn` (never plain `spawn_session`,
+    which drops YOLO and auto-merge) for an independent workstream that
+    deserves its own branch, PR and context window. It gets a worktree off
+    current `main`, auto-merge and auto-fix, and sits under you on the board.
+    Brief it fully in `intent`: outcome, constraints, files, how you'll judge
+    it done, and "mail me with questions and when your PR merges". Split work
+    so children don't edit the same files. You may have a few live children
+    and the tree stops three levels deep.
+- **If you are a child** (`AW_YOLO_PARENT` is set): your parent is your
+  human. Send questions and your final report to it with `send_message`
+  (to: `$AW_YOLO_PARENT`); never raise `request_human_input` yourself. A hard
+  stop goes to your parent, which decides whether it reaches the human.
 - **Escalation.** You raise `request_human_input` only for the hard stops
   below. Everything else you decide, record in the PR, and continue.
 

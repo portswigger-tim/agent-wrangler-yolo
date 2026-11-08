@@ -6,7 +6,7 @@
   "description": "Lets an opted-in Agent Wrangler session own a repo end to end: design, delegate, merge, release and harden. An Agent Wrangler extension.",
   "license": "MIT",
   "scripts": {
-    "test": "node --test --import ./test-setup.js 'server/**/*.test.js'",
+    "test": "node --test --import ./test-setup.js 'server/**/*.test.js' 'public/**/*.test.js'",
     "lint": "eslint --max-warnings 0 .",
     "verify": "npm run lint && npm test"
   },
@@ -16,7 +16,8 @@
     "description": "Lets an opted-in session own its repo end to end: design, delegate, merge, release and harden.",
     "author": "PortSwigger",
     "requires": [
-      "sessions:read"
+      "sessions:read",
+      "sessions:spawn"
     ],
     "engines": {
       "wranglerApi": "^1.57.0"

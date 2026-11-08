@@ -50,6 +50,10 @@ export class YoloStore {
     return { ...row };
   }
 
+  childrenOf(sid) {
+    return Object.entries(this.state.sessions).filter(([, row]) => row.parent === sid).map(([id]) => id);
+  }
+
   forget(sid) {
     if (!(sid in this.state.sessions)) return false;
     delete this.state.sessions[sid];
