@@ -44,6 +44,23 @@ before merging, releasing or changing repo settings.
 3. Never use `--no-verify`, `SKIP=`, `git push --force` to the default branch,
    or `--admin` merges. If a hook fails, fix the cause.
 
+## Keep the repo hardened
+
+- At the start of a YOLO session, run `yolo_audit_repo`. If anything fails,
+  run `yolo_harden_repo` (a dry run), read what it would change, then run it
+  with `apply: true`. It only ever tightens, so this needs no human sign-off.
+- Required checks are detected from the most recent PR's GitHub Actions
+  checks. A repo with no CI yet gets a ruleset without required checks: add CI
+  (with a `pre-commit` job) in your first PR, then run `yolo_harden_repo` again
+  once that PR's checks have run, so they become required.
+- When you add, rename or remove a CI job, run `yolo_harden_repo` again
+  afterwards (adding is automatic; a renamed or removed check stays required
+  and blocks every PR until a human loosens it, so prefer adding over
+  renaming).
+- A control that reports `error` usually means the plan or permissions don't
+  allow it (for example secret scanning on a private repo without GitHub
+  Advanced Security). Note it in your summary; don't work around it.
+
 ## The loop
 
 1. `git pull --ff-only`, branch from up-to-date `main`.
@@ -60,6 +77,10 @@ before merging, releasing or changing repo settings.
    and yield to the wrangler's PR notices. Don't poll.
 6. When a release PR is open and `main` is in the state you want to ship, merge
    it. Check that the tag and GitHub release appeared.
+   A release PR opened by the release workflow's `GITHUB_TOKEN` never starts
+   CI, so its required checks sit at "expected" forever. Run
+   `gh pr close <n> && gh pr reopen <n>` (an event from you, which does start
+   CI), attach it with `set_links`, and let auto-merge take it.
 
 ## Hard stops: ask the human first
 

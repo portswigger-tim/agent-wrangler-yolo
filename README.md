@@ -5,8 +5,8 @@ session own its repository end to end. You give it an outcome; it makes the desi
 whether to use subagents or child sessions, merges its own PRs once the gates pass, cuts SemVer
 releases and keeps the repo hardened. It asks you only at a short list of hard stops.
 
-> **Status: early.** Phase 1 (scaffold, enrolment, pre-commit enforcement) is in place. Repo
-> hardening tools, the dispatch-dialog switch and child-session spawning follow. See
+> **Status: early.** Enrolment, pre-commit enforcement and the repo-hardening tools are in place.
+> The dispatch-dialog switch and child-session spawning follow. See
 > [the plan](#roadmap).
 
 ## How it works
@@ -24,6 +24,27 @@ releases and keeps the repo hardened. It asks you only at a short list of hard s
 - **The `yolo` skill** is the operating procedure: own the decisions, delegate deliberately, never
   bypass the gate, conventional commits for SemVer, review before merge, and the hard stops that
   go to you.
+
+## Repo hardening
+
+`yolo_audit_repo` checks the session's repo against the baseline below; `yolo_harden_repo` applies it
+(a dry run unless `apply: true`). Both act only on the calling session's enrolled repo. Hardening only
+ever tightens: it never deletes or loosens a ruleset, adds a bypass or disables a feature, and when
+it updates its own ruleset it keeps anything stricter a human added.
+
+| Control | Baseline |
+| --- | --- |
+| Default-branch ruleset | PRs only (0 approvals, threads resolved, stale reviews dismissed), required checks up to date, linear history, no force-push or deletion, one merge method, optional signed commits |
+| Tag ruleset | `v*` tags can be created but never updated, moved or deleted |
+| Immutable releases | On |
+| Secret scanning | On, with push protection |
+| Dependabot | Alerts and security updates on |
+| CodeQL | Default setup |
+| Private vulnerability reporting | On |
+| Actions | Read-only workflow token, Actions can't approve PRs, SHA pinning required |
+| Merge settings | Auto-merge on, branches deleted on merge, PR title as the squash subject |
+
+Run it outside the wrangler with `node scripts/harden.mjs [repo-dir] [--apply]`.
 
 ## Hard stops
 
@@ -56,10 +77,9 @@ AW_REPO=../agent-wrangler node scripts/validate-manifest.mjs   # the real loader
 
 ## Roadmap
 
-1. Scaffold, enrolment and the pre-commit gate (this release).
+1. Scaffold, enrolment and the pre-commit gate. Done.
 2. Skills: `repo-hardening`, `pre-commit`, `release`, and orchestration guidance.
-3. Tools: `yolo_audit_repo`, `yolo_harden_repo` (rulesets, immutable `v*` tags, immutable
-   releases, security features, Actions policy), `yolo_bootstrap_repo`.
+3. Tools: `yolo_audit_repo` and `yolo_harden_repo` (done); `yolo_bootstrap_repo`.
 4. The dispatch-dialog switch, and `yolo_spawn` so children inherit YOLO, auto-merge and
    auto-fix.
 5. A guardrail hook against destructive commands.

@@ -88,6 +88,39 @@ for (const skill of ['yolo']) {
   if (entry?.skills?.includes(skill) && fs.existsSync(path.join(root, 'skills', skill, 'SKILL.md'))) ok(`skill ${skill}`);
   else fail(`skill ${skill} missing from the manifest or skills/${skill}/SKILL.md`);
 }
+const wantTools = ['yolo_audit_repo', 'yolo_harden_repo'];
+const gotTools = loaded.tools.filter((t) => t.extId === manifest.id).map((t) => t.name).sort();
+if (JSON.stringify(gotTools) === JSON.stringify(wantTools)) ok(`tools: ${gotTools.join(', ')}`);
+else fail(`tools are [${gotTools.join(', ')}], expected [${wantTools.join(', ')}]`);
+
+// 6. The tools through the wrangler's own MCP server over an in-memory
+//    transport: where this repo's zod 4 schemas meet the wrangler's MCP SDK.
+//    A mismatch shows up as a missing inputSchema or a throw at registerTool.
+try {
+  const { buildMcpServer } = await mod('server/mcp/server.js');
+  const sdk = (rel) => mod(`node_modules/@modelcontextprotocol/sdk/dist/esm/${rel}`);
+  const { Client } = await sdk('client/index.js');
+  const { InMemoryTransport } = await sdk('inMemory.js');
+  const core = { sessionManager: { activeEntries: () => [], entryFor: () => null }, taskStore: { taskFor: () => null, snapshot: () => ({ tasks: [] }) } };
+  const host = buildHostApi({
+    id: manifest.id, requires: manifest.requires, range: manifest.engines?.wranglerApi, core,
+    rebuild: () => {}, broadcast: () => {}, deliver: async () => ({ mode: 'live' }), archiveSession: () => {},
+    stores: { yolo: store }, settingDefs: manifest.settings, readSettings: () => ({}), log: () => {},
+  });
+  const server = buildMcpServer({ hostApiFor: (extId) => (extId === manifest.id ? host : undefined) }, 'validate-stranger', { tools: loaded.tools });
+  const [a, b] = InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: 'validate-manifest', version: '0.0.0' });
+  await Promise.all([server.connect(a), client.connect(b)]);
+  const listed = (await client.listTools()).tools.filter((t) => wantTools.includes(t.name));
+  const harden = listed.find((t) => t.name === 'yolo_harden_repo');
+  if (listed.length !== wantTools.length) fail(`MCP lists [${listed.map((t) => t.name)}]`);
+  else if (!harden?.inputSchema?.properties?.apply || !harden.inputSchema.properties.required_checks) fail('yolo_harden_repo inputSchema lost its properties');
+  else ok('MCP tools/list: both tools with their input schemas');
+  const refused = await client.callTool({ name: 'yolo_audit_repo', arguments: {} });
+  if (refused.isError && /not running in YOLO mode/.test(refused.content?.[0]?.text)) ok('MCP call from an unenrolled session is refused');
+  else fail(`unenrolled call was not refused: ${JSON.stringify(refused)}`);
+  await Promise.all([client.close(), server.close()]);
+} catch (e) { fail(`MCP check: ${e.message}`); }
 
 fs.rmSync(extDir, { recursive: true, force: true });
 if (madeDataDir) fs.rmSync(madeDataDir, { recursive: true, force: true });
