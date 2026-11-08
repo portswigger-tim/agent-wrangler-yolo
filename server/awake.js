@@ -19,14 +19,17 @@ export function caffeinateArgs({ display = false, pid = process.pid } = {}) {
 // background shell, or was active within the grace window. The window covers a
 // session that ended its turn to wait for CI, auto-fix and auto-merge: the
 // wrangler's PR watch has to stay awake to wake it again. A session waiting on
-// you (`needs-you`) only counts while it is inside the window.
+// you (`needs-you`) only counts while it is inside the window; a snoozed one only
+// while it is working.
 export function sessionsKeepingAwake({ sessions, isYolo, now = Date.now(), graceMs = DEFAULT_GRACE_MINUTES * 60_000 }) {
   const out = [];
   for (const s of sessions) {
     if (!s?.sessionId || !isYolo(s.sessionId)) continue;
     const busy = s.status === 'working' || s.hasBackgroundShell === true;
     const recent = typeof s.lastActivity === 'number' && now - s.lastActivity < graceMs;
-    if (busy || (recent && !s.snooze)) out.push(s.sessionId);
+    // Core keeps a snooze after its deadline, so only a future `until` is asleep.
+    const asleep = typeof s.snooze?.until === 'number' && s.snooze.until > now;
+    if (busy || (recent && !asleep)) out.push(s.sessionId);
   }
   return out;
 }

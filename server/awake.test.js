@@ -37,10 +37,11 @@ test('only enrolled sessions that are busy or recently active keep the Mac awake
     { sessionId: 'y-waiting-ci', status: 'idle', lastActivity: NOW - 10 * MIN },
     { sessionId: 'y-stale', status: 'idle', lastActivity: NOW - 31 * MIN },
     { sessionId: 'y-snoozed', status: 'idle', lastActivity: NOW - MIN, snooze: { until: NOW + MIN } },
+    { sessionId: 'y-snooze-over', status: 'idle', lastActivity: NOW - MIN, snooze: { until: NOW - MIN } },
     { sessionId: 'n-working', status: 'working', lastActivity: NOW },
     { status: 'working' },
   ];
-  assert.deepEqual(sessionsKeepingAwake({ sessions, isYolo, now: NOW, graceMs: 30 * MIN }), ['y-working', 'y-shell', 'y-waiting-ci']);
+  assert.deepEqual(sessionsKeepingAwake({ sessions, isYolo, now: NOW, graceMs: 30 * MIN }), ['y-working', 'y-shell', 'y-waiting-ci', 'y-snooze-over']);
   assert.deepEqual(sessionsKeepingAwake({ sessions, isYolo, now: NOW, graceMs: 0 }), ['y-working', 'y-shell']);
 });
 
