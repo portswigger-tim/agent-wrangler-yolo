@@ -16,6 +16,9 @@ export const TOOL_DIR = path.join(DATA_DIR, 'yolo', 'release-please');
 export const CONFIG_FILE = 'release-please-config.json';
 export const MANIFEST_FILE = '.release-please-manifest.json';
 export const PENDING_LABEL = 'autorelease: pending';
+// release-please's PR branch. Looked up by branch rather than label: the label
+// lands a moment after the PR, so a label query right after the run misses it.
+export const BRANCH_PREFIX = 'release-please--branches--';
 
 function lockHash(dir) {
   return crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, 'package-lock.json'))).digest('hex');
@@ -59,8 +62,9 @@ export async function openReleasePr({ repoDir, repo, defaultBranch, exec = run, 
       '--config-file', CONFIG_FILE,
       '--manifest-file', MANIFEST_FILE,
     ], { cwd: repoDir, timeout: 180_000 });
-    const { stdout: list } = await exec('gh', ['pr', 'list', '--repo', repo, '--state', 'open', '--label', PENDING_LABEL, '--json', 'number,url,title,headRefName'], { cwd: repoDir });
-    return { pulls: JSON.parse(list || '[]'), log: `${stdout}${stderr}`.trim().split('\n').slice(-20).join('\n') };
+    const { stdout: list } = await exec('gh', ['pr', 'list', '--repo', repo, '--state', 'open', '--base', defaultBranch, '--json', 'number,url,title,headRefName'], { cwd: repoDir });
+    const pulls = JSON.parse(list || '[]').filter((p) => p.headRefName?.startsWith(`${BRANCH_PREFIX}${defaultBranch}`));
+    return { pulls, log: `${stdout}${stderr}`.trim().split('\n').slice(-20).join('\n') };
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

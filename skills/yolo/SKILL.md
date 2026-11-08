@@ -86,6 +86,13 @@ before merging, releasing or changing repo settings.
      (fix it, or reply in the thread with why not).
 5. Let auto-fix and auto-merge drive it: end your turn after attaching the PR
    and yield to the wrangler's PR notices. Don't poll.
+   When a check fails before any of the repo's own steps run (runner setup,
+   an action's download or self-test, HTTP 5xx or timeouts talking to
+   GitHub), it's infrastructure, not your code: check
+   `https://www.githubstatus.com/api/v2/summary.json`, then
+   `gh run rerun <id> --failed`. Don't change code or loosen CI for it. A
+   same-commit re-run may bring no new notice, so check the PR once when you
+   next resume.
 6. **Releasing.** When `main` holds something worth shipping, call
    `yolo_release_pr`. It runs release-please as the human: SemVer bump from
    your conventional commits, `CHANGELOG.md`, and a PR labelled
