@@ -30,10 +30,13 @@ async function baselineFor(host, caller, { apply, requiredChecks, makeClient }) 
   const checks = requiredChecks ?? await detectRequiredChecks(gh, repo);
   const ctx = { repo, defaultBranch, requiredChecks: checks, ...settingsCtx(host) };
   const results = await runBaseline(gh, ctx, { apply });
-  const failing = results.filter((r) => !r.ok).length;
-  const lead = failing
-    ? `${repo}: ${failing} of ${results.length} controls ${apply ? 'still failing' : 'failing'}.`
-    : `${repo}: all ${results.length} controls pass.`;
+  const unavailable = results.filter((r) => r.action === 'unavailable').length;
+  const failing = results.filter((r) => !r.ok).length - unavailable;
+  const parts = [failing
+    ? `${failing} of ${results.length} controls ${apply ? 'still failing' : 'failing'}`
+    : `${results.length - unavailable} of ${results.length} controls pass`];
+  if (unavailable) parts.push(`${unavailable} not available on this repo's GitHub plan (needs a public repo, GitHub Pro/Team or Advanced Security; tell the human, don't work around it)`);
+  const lead = `${repo}: ${parts.join('; ')}.`;
   return okResult({ repo, defaultBranch, mergeMethod: ctx.mergeMethod, requiredChecks: checks, applied: apply, results }, lead);
 }
 

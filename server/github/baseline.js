@@ -259,6 +259,16 @@ export async function detectRequiredChecks(gh, repo) {
   return [...new Set(names)].sort();
 }
 
+// GitHub refuses some features on some plans (rulesets and auto-merge on a
+// private repo on Free; secret scanning and CodeQL on a private repo without
+// Advanced Security). That is a fact about the repo, not a failure to retry.
+export function planLimited(err) {
+  const text = `${err?.message ?? ''} ${err?.stderr ?? ''}`;
+  return /Upgrade to GitHub Pro|make this repository public|Advanced Security|not available for this repository|must have admin rights or GitHub Advanced Security/i.test(text);
+}
+
+export const UNAVAILABLE = 'not available on this repo\'s GitHub plan: it needs a public repo, GitHub Pro/Team, or Advanced Security';
+
 // Check every control; with `apply`, fix the ones that fail. One control's
 // error never stops the rest.
 export async function runBaseline(gh, ctx, { apply = false, controls = buildControls() } = {}) {
@@ -276,7 +286,9 @@ export async function runBaseline(gh, ctx, { apply = false, controls = buildCont
         if (!after.ok) row.action = 'applied-but-still-failing';
       }
     } catch (err) {
-      row = { id: c.id, label: c.label, ok: false, action: 'error', detail: err.message };
+      row = planLimited(err)
+        ? { id: c.id, label: c.label, ok: false, action: 'unavailable', detail: UNAVAILABLE }
+        : { id: c.id, label: c.label, ok: false, action: 'error', detail: err.message };
     }
     results.push(row);
   }

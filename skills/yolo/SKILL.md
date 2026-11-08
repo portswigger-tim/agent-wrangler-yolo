@@ -92,9 +92,17 @@ manifest; don't restart at 0.1.0.
   afterwards (adding is automatic; a renamed or removed check stays required
   and blocks every PR until a human loosens it, so prefer adding over
   renaming).
-- A control that reports `error` usually means the plan or permissions don't
-  allow it (for example secret scanning on a private repo without GitHub
-  Advanced Security). Note it in your summary; don't work around it.
+- A control that reports `unavailable` isn't offered on the repo's GitHub
+  plan (rulesets and GitHub auto-merge need a public repo or Pro/Team on a
+  private repo; secret scanning and CodeQL need Advanced Security). Tell the
+  human in your summary which protections are missing and what would enable
+  them; don't work around it and don't change the repo's visibility. `error`
+  is anything else: read the detail and fix the cause.
+- Branches are deleted on GitHub when their PR merges (`merge-settings`), and
+  each new YOLO session prunes local branches whose PR merged. Keep it that
+  way: merge with `gh pr merge --squash --delete-branch` when you merge by
+  hand, and after your PR merges, `git switch main && git pull --ff-only`
+  before starting the next piece of work.
 
 ## The loop
 

@@ -37,6 +37,30 @@ export async function installPreCommit(repoRoot, { exec = run } = {}) {
   }
 }
 
+export const MAX_PRUNE = 20;
+
+// Delete local branches whose PR has merged. GitHub deletes the remote branch
+// on merge (the baseline turns that on), but the local copy lingers, and a
+// squash merge leaves it looking unmerged to `git branch -d`. A branch goes
+// only when its upstream is gone AND a merged PR's head is exactly the local
+// tip, so unpushed work is never lost. Branches checked out in any worktree
+// are left alone.
+export async function pruneMergedBranches(repoRoot, { exec = run } = {}) {
+  await exec('git', ['fetch', '--prune', '--quiet'], { cwd: repoRoot, timeout: 20_000 });
+  const { stdout: refs } = await exec('git', ['for-each-ref', '--format=%(refname:short)%09%(upstream:track)%09%(objectname)', 'refs/heads'], { cwd: repoRoot });
+  const { stdout: trees } = await exec('git', ['worktree', 'list', '--porcelain'], { cwd: repoRoot });
+  const checkedOut = new Set([...trees.matchAll(/^branch refs\/heads\/(.+)$/gm)].map((m) => m[1]));
+  const gone = refs.split('\n').map((l) => l.split('\t')).filter(([name, track]) => name && track === '[gone]' && !checkedOut.has(name));
+  const deleted = [];
+  for (const [name, , sha] of gone.slice(0, MAX_PRUNE)) {
+    const { stdout } = await exec('gh', ['pr', 'list', '--state', 'merged', '--head', name, '--json', 'headRefOid', '--limit', '10'], { cwd: repoRoot, timeout: 15_000 });
+    if (!JSON.parse(stdout || '[]').some((p) => p.headRefOid === sha)) continue;
+    await exec('git', ['branch', '-D', name], { cwd: repoRoot });
+    deleted.push(name);
+  }
+  return deleted;
+}
+
 async function guarded(name, host, fn, fallback) {
   try {
     return await fn();
@@ -72,6 +96,10 @@ export function makePrepare({ exec = run } = {}) {
       const warnings = [];
       await exec('git', ['pull', '--ff-only', '--quiet'], { cwd: repoRoot, timeout: 20_000 })
         .catch((err) => warnings.push(`YOLO: git pull --ff-only failed, the worktree may branch from a stale base: ${(err.stderr || err.message || '').trim().split('\n')[0]}`));
+      // Housekeeping: a failure here is logged, never shown or fatal.
+      await pruneMergedBranches(repoRoot, { exec })
+        .then((deleted) => { if (deleted.length) host.log?.(`pruned merged branches in ${repoRoot}: ${deleted.join(', ')}`); })
+        .catch((err) => host.log?.(`branch prune skipped in ${repoRoot}: ${err.message}`));
       const hooks = await installPreCommit(repoRoot, { exec });
       if (hooks.warning) warnings.push(hooks.warning);
       return warnings.length ? { warnings } : undefined;

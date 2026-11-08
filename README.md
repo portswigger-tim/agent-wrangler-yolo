@@ -26,6 +26,11 @@ releases and keeps the repo hardened. It asks you only at a short list of hard s
   extension runs `git pull --ff-only` and `pre-commit install` for the `pre-commit`,
   `pre-merge-commit`, `pre-push` and `commit-msg` hook types. Worktrees share the repo's hooks, so
   every child is gated too. CI runs the same hooks as a required check.
+- **Merged branches don't linger.** The baseline deletes a branch on GitHub when its PR merges,
+  and each new YOLO session prunes local branches whose PR has merged. A branch is deleted only when
+  its remote is gone and a merged PR's head is exactly the local tip, so unpushed work survives (and
+  squash merges, which `git branch -d` can't recognise, are handled). Branches checked out in a
+  worktree are left alone.
 - **The `yolo` skill** is the operating procedure: own the decisions, delegate deliberately, never
   bypass the gate, conventional commits for SemVer, review before merge, and the hard stops that
   go to you.
@@ -48,6 +53,11 @@ it updates its own ruleset it keeps anything stricter a human added.
 | Private vulnerability reporting | On |
 | Actions | Read-only workflow token, Actions can't approve PRs, SHA pinning required |
 | Merge settings | Auto-merge on, branches deleted on merge, PR title as the squash subject |
+
+A control GitHub doesn't offer on the repo's plan reports `unavailable` rather than failing: on a
+private repo on GitHub Free that's rulesets and GitHub auto-merge; secret scanning and CodeQL on a
+private repo need Advanced Security. The wrangler's own auto-merge still waits for green checks, but
+nothing on GitHub enforces them.
 
 Run it outside the wrangler with `node scripts/harden.mjs [repo-dir] [--apply]`.
 
