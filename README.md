@@ -118,9 +118,12 @@ AW_REPO=../agent-wrangler node scripts/validate-manifest.mjs   # the real loader
 ## Roadmap
 
 1. Scaffold, enrolment and the pre-commit gate. Done.
-2. Skills: `repo-hardening`, `pre-commit`, `release`, and orchestration guidance.
-3. Tools: `yolo_audit_repo` and `yolo_harden_repo` (done); `yolo_bootstrap_repo`.
+2. Skill: operating procedure, delegation, hard stops, releases, infra-flake handling, and
+   bootstrap templates (`skills/yolo/templates/`). Done.
+3. Tools: `yolo_audit_repo`, `yolo_harden_repo`, `yolo_release_pr`. Done. Bootstrap is
+   templates plus the agent's judgement rather than a tool, since each repo's linters differ.
 4. The dispatch-dialog switch, and `yolo_spawn` so children inherit YOLO, auto-merge and
    auto-fix. Done.
 5. A guardrail hook against destructive commands. Done.
-6. An end-to-end run on a sandbox repo.
+6. An end-to-end run on a sandbox repo: a YOLO session from the dispatch dialog, bootstrap,
+   harden, child sessions, merge and release.

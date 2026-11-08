@@ -55,6 +55,30 @@ before merging, releasing or changing repo settings.
    security settings, repo deletion) with a reason. A refusal is a hard stop,
    not a puzzle: don't rephrase the command to get past it.
 
+## Bootstrapping a repo
+
+A repo without the gate, CI or release config gets them in your **first PR**,
+before any feature work. Start from the templates in `templates/` next to
+this file. They are this extension's own working setup, generalised:
+
+| Template | Put it at | Then |
+| --- | --- | --- |
+| `.pre-commit-config.yaml` | repo root | Add the repo's linters and tests where it says `REPLACE`. |
+| `.github/workflows/ci.yml` | same path | Add toolchain setup for the local hooks; add build and test jobs beside `pre-commit`. |
+| `.github/workflows/release-please.yml` | same path | Use as is. |
+| `release-please-config.json` | repo root | Set `release-type` (`node`, `python`, `go`, `rust`, `simple`, …). |
+| `.release-please-manifest.json` | repo root | Use as is, or the current version if the repo already ships releases. |
+| `.github/dependabot.yml` | same path | Swap the `npm` entry for the repo's ecosystems. |
+| `SECURITY.md` | repo root | Replace `OWNER/REPO`. |
+
+Then run `pre-commit install -t pre-commit -t pre-merge-commit -t pre-push -t commit-msg`
+and `pre-commit run --all-files`, and fix what it finds (in the same PR, or a
+follow-up if it's large). Don't drop a baseline hook to get green. Re-freeze
+with `pre-commit autoupdate --freeze` so every `rev` is a SHA. Once that PR's
+CI has run, call `yolo_harden_repo` with `apply: true` so its checks become
+required. A repo that already ships releases with tags keeps its version in the
+manifest; don't restart at 0.1.0.
+
 ## Keep the repo hardened
 
 - At the start of a YOLO session, run `yolo_audit_repo`. If anything fails,

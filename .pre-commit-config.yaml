@@ -68,7 +68,7 @@ repos:
         name: no absolute local paths
         language: pygrep
         entry: '(/Users/[A-Za-z]|/home/[a-z][a-z0-9_-]*/|/private/tmp/|/private/var/folders/)'
-        exclude: '^(package-lock\.json|\.pre-commit-config\.yaml)$'
+        exclude: '^(package-lock\.json|\.pre-commit-config\.yaml|skills/yolo/templates/\.pre-commit-config\.yaml)$'
 
       - id: eslint
         name: eslint
