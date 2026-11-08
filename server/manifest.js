@@ -13,10 +13,11 @@ export const dir = fileURLToPath(new URL('..', import.meta.url));
 export const SETTINGS = [
   { key: 'mergeMethod', type: 'select', label: 'Merge method', help: 'How YOLO sessions merge PRs and what the branch ruleset allows (default squash).', options: [{ value: 'squash', label: 'Squash' }, { value: 'rebase', label: 'Rebase' }, { value: 'merge', label: 'Merge commit' }] },
   { key: 'requireSignedCommits', type: 'toggle', label: 'Require signed commits', help: 'Add "require signed commits" to the default-branch ruleset. Off unless turned on.' },
+  { key: 'maxChildren', type: 'number', label: 'Live child sessions per session', help: 'How many YOLO children one session may have running at once (1–20, default 5).', min: 1, max: 20, step: 1 },
   { key: 'maxFixAttempts', type: 'number', label: 'Fix attempts before escalating', help: 'How many times a session retries the same failing check before asking you (1–10, default 3).', min: 1, max: 10, step: 1 },
 ];
 
-export const REQUIRES = ['sessions:read'];
+export const REQUIRES = ['sessions:read', 'sessions:spawn'];
 
 export default {
   id: 'yolo',
@@ -38,4 +39,5 @@ export default {
   session: { onPurge },
   settings: SETTINGS,
   skills: ['yolo'],
+  client: 'public/index.js',
 };

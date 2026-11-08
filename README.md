@@ -5,18 +5,23 @@ session own its repository end to end. You give it an outcome; it makes the desi
 whether to use subagents or child sessions, merges its own PRs once the gates pass, cuts SemVer
 releases and keeps the repo hardened. It asks you only at a short list of hard stops.
 
-> **Status: early.** Enrolment, pre-commit enforcement and the repo-hardening tools are in place.
-> The dispatch-dialog switch and child-session spawning follow. See
+> **Status: early.** Enrolment, pre-commit enforcement, repo hardening, the dispatch-dialog switch
+> and child-session spawning are in place. See
 > [the plan](#roadmap).
 
 ## How it works
 
-- **Opt-in per session, scoped to one repo.** A session is enrolled when it is launched with YOLO
-  on. It is then bound to the git repo it was launched in, for its whole life, and gets `AW_YOLO=1`
+- **Opt-in per session, scoped to one repo.** Tick **YOLO** under the dispatch dialog's advanced
+  options (it always opens off). That also turns on auto-merge for the session. A session is enrolled
+  when it is launched with YOLO on. It is then bound to the git repo it was launched in, for its whole life, and gets `AW_YOLO=1`
   and `AW_YOLO_REPO` in its environment. Sessions without it are untouched, and so is everything
   when the extension is disabled.
-- **Children inherit, within the same repo.** A fork of an enrolled session, or a child it spawns,
-  is enrolled against the same repo. A child pointed at a different repo is refused.
+- **Children inherit, within the same repo.** `yolo_spawn` launches a child in its own worktree off
+  current `main`, with YOLO, auto-merge and auto-fix on, nested under its parent and on its task. The
+  child gets `AW_YOLO_PARENT` and reports to its parent by mail; it never asks you directly. A fork
+  is enrolled the same way. A child pointed at a different repo is refused. A session may have a
+  few live children (setting, default 5) and the tree stops three levels deep. Core `spawn_session`
+  carries no extension data, so a child launched with it is not in YOLO mode.
 - **pre-commit is enforced, not suggested.** Before an enrolled session's worktree is created, the
   extension runs `git pull --ff-only` and `pre-commit install` for the `pre-commit`,
   `pre-merge-commit`, `pre-push` and `commit-msg` hook types. Worktrees share the repo's hooks, so
@@ -58,6 +63,7 @@ keeps failing the same check.
 | --- | --- | --- |
 | Merge method | squash | How sessions merge, and what the branch ruleset allows. |
 | Require signed commits | off | Adds signed commits to the default-branch ruleset. |
+| Live child sessions per session | 5 | How many `yolo_spawn` children one session may have running. |
 | Fix attempts before escalating | 3 | Retries on the same failing check before asking you. |
 
 ## Install
@@ -81,6 +87,6 @@ AW_REPO=../agent-wrangler node scripts/validate-manifest.mjs   # the real loader
 2. Skills: `repo-hardening`, `pre-commit`, `release`, and orchestration guidance.
 3. Tools: `yolo_audit_repo` and `yolo_harden_repo` (done); `yolo_bootstrap_repo`.
 4. The dispatch-dialog switch, and `yolo_spawn` so children inherit YOLO, auto-merge and
-   auto-fix.
+   auto-fix. Done.
 5. A guardrail hook against destructive commands.
 6. An end-to-end run on a sandbox repo.

@@ -88,10 +88,13 @@ for (const skill of ['yolo']) {
   if (entry?.skills?.includes(skill) && fs.existsSync(path.join(root, 'skills', skill, 'SKILL.md'))) ok(`skill ${skill}`);
   else fail(`skill ${skill} missing from the manifest or skills/${skill}/SKILL.md`);
 }
-const wantTools = ['yolo_audit_repo', 'yolo_harden_repo'];
+const wantTools = ['yolo_audit_repo', 'yolo_harden_repo', 'yolo_spawn'];
 const gotTools = loaded.tools.filter((t) => t.extId === manifest.id).map((t) => t.name).sort();
 if (JSON.stringify(gotTools) === JSON.stringify(wantTools)) ok(`tools: ${gotTools.join(', ')}`);
 else fail(`tools are [${gotTools.join(', ')}], expected [${wantTools.join(', ')}]`);
+const client = loaded.clientManifest.find((c) => c.id === manifest.id) ?? loaded.clientManifest[0];
+if (client?.client === `/ext/${manifest.id}/${path.basename(manifest.client)}` && fs.existsSync(path.join(root, manifest.client))) ok(`client asset ${client.client} → ${manifest.client}`);
+else fail(`client asset ${client?.client} does not serve ${manifest.client}`);
 
 // 6. The tools through the wrangler's own MCP server over an in-memory
 //    transport: where this repo's zod 4 schemas meet the wrangler's MCP SDK.
@@ -107,6 +110,8 @@ try {
     rebuild: () => {}, broadcast: () => {}, deliver: async () => ({ mode: 'live' }), archiveSession: () => {},
     stores: { yolo: store }, settingDefs: manifest.settings, readSettings: () => ({}), log: () => {},
   });
+  if (typeof host.sessions?.spawn === 'function' && typeof host.sessions?.get === 'function') ok('host.sessions.spawn and .get granted');
+  else fail('host.sessions.spawn/get missing: check requires');
   const server = buildMcpServer({ hostApiFor: (extId) => (extId === manifest.id ? host : undefined) }, 'validate-stranger', { tools: loaded.tools });
   const [a, b] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: 'validate-manifest', version: '0.0.0' });

@@ -81,6 +81,25 @@ test('prepare enrols a child of a YOLO parent in the same repo, and refuses anot
   assert.equal(store.get('stray'), null);
 });
 
+test('prepare links a yolo_spawn child through the slice\'s parent, and refuses an unknown parent', async () => {
+  const { repo, store, host } = setup();
+  store.enrol('parent', { repo });
+  const prepare = makePrepare({ exec: fakeExec().exec });
+  await prepare({ sessionId: 'child', repoRoot: repo, ext: { enabled: true, parent: 'parent' }, spawnedBy: null, host });
+  assert.equal(store.get('child').parent, 'parent');
+  const r = await prepare({ sessionId: 'orphan', repoRoot: repo, ext: { enabled: true, parent: 'ghost' }, host });
+  assert.match(r.abort, /ghost is not in YOLO mode/);
+  assert.equal(store.get('orphan'), null);
+});
+
+test('launchContext tells a child who its parent is', () => {
+  const { store, host } = setup();
+  store.enrol('p', { repo: '/repo' });
+  store.enrol('c', { repo: '/repo', parent: 'p' });
+  assert.equal(launchContext({ sid: 'c', reason: 'spawn', host }).env.AW_YOLO_PARENT, 'p');
+  assert.equal('AW_YOLO_PARENT' in launchContext({ sid: 'p', reason: 'resume', host }).env, false);
+});
+
 test('installPreCommit warns when the config is missing or core.hooksPath is set', async () => {
   const bare = setup({ config: false });
   assert.match((await installPreCommit(bare.repo, { exec: fakeExec().exec })).warning, /no \.pre-commit-config\.yaml/);
