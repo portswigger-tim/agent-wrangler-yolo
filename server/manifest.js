@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { YoloStore } from './store.js';
 import { yoloFile } from './data-dir.js';
 import { makePrepare, launchContext, onPurge } from './hooks.js';
+import { yoloTools } from './tools/index.js';
 
 // The root index.js only re-exports this: the wrangler's import scanner
 // quarantines any own file importing `../index.js`, so tests import THIS module.
@@ -33,6 +34,7 @@ export default {
     'session.prepare': makePrepare(),
     'session.launchContext': launchContext,
   },
+  tools: yoloTools,
   session: { onPurge },
   settings: SETTINGS,
   skills: ['yolo'],
