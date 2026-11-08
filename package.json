@@ -1,0 +1,38 @@
+{
+  "name": "agent-wrangler-yolo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lets an opted-in Agent Wrangler session own a repo end to end: design, delegate, merge, release and harden. An Agent Wrangler extension.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test --import ./test-setup.js 'server/**/*.test.js'",
+    "lint": "eslint --max-warnings 0 .",
+    "verify": "npm run lint && npm test"
+  },
+  "wranglerExtension": {
+    "id": "yolo",
+    "label": "YOLO",
+    "description": "Lets an opted-in session own its repo end to end: design, delegate, merge, release and harden.",
+    "author": "PortSwigger",
+    "requires": [
+      "sessions:read"
+    ],
+    "engines": {
+      "wranglerApi": "^1.57.0"
+    },
+    "homepage": "https://github.com/portswigger-tim/agent-wrangler-yolo"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/portswigger-tim/agent-wrangler-yolo.git"
+  }
+}

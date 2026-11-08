@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  # Opens or updates the release PR from conventional commits (SemVer bump,
+  # CHANGELOG.md, package.json version). Merging that PR tags vX.Y.Z and
+  # publishes the GitHub release. Tags are immutable by ruleset.
+  #
+  # A PR opened with GITHUB_TOKEN does not trigger CI, so its required checks
+  # never start: the YOLO skill closes and reopens it (or pushes a commit to
+  # it) as a human-authored event before merging.
+  release-please:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: portswigger-tim/safer-runner-action@d9772c3c7c5c0f8cd6cb7123e138120b11c12371 # v2.2.1
+        with:
+          mode: enforce
+          allowed-domains: |
+            github.com
+            api.github.com
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
