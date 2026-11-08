@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# npm's audit is a POST, which http-filter refuses on the read-only registry.
+env:
+  npm_config_audit: 'false'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Unit tests plus the real Agent Wrangler loader. Side by side, not nested:
+  # validate-manifest.mjs copies this checkout and scans every file in it.
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    defaults:
+      run:
+        working-directory: yolo
+    env:
+      AW_REPO: ${{ github.workspace }}/agent-wrangler
+    steps:
+      # First, so its pre step locks down egress before any other step runs.
+      - uses: portswigger-tim/safer-runner-action@d9772c3c7c5c0f8cd6cb7123e138120b11c12371 # v2.2.1
+        with:
+          mode: enforce
+          allowed-domains: |
+            registry.npmjs.org
+          # Read-only: installs and clones yes, publishes and pushes no.
+          http-filter: |
+            github.com:
+              "*": GET, HEAD
+              "*/git-upload-pack": POST
+            api.github.com:
+              "*": GET, HEAD
+            registry.npmjs.org:
+              "*": GET, HEAD
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: yolo
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: PortSwigger/agent-wrangler
+          ref: main
+          path: agent-wrangler
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: |
+            yolo/package-lock.json
+            agent-wrangler/package-lock.json
+
+      - run: npm ci --ignore-scripts
+
+      # Only the loader's own imports are needed; nothing is booted.
+      - run: npm ci --ignore-scripts
+        working-directory: agent-wrangler
+
+      - run: node scripts/validate-manifest.mjs
+
+      - run: npm test
+
+  # The same gate as the local hooks, so a commit made without them (or with
+  # --no-verify) still can't reach main unchecked. Required by the ruleset.
+  pre-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: portswigger-tim/safer-runner-action@d9772c3c7c5c0f8cd6cb7123e138120b11c12371 # v2.2.1
+        with:
+          mode: enforce
+          # Comments go here, never inside the block below: the action reads
+          # every word in it as a domain. gitleaks and actionlint are Go hooks:
+          # pre-commit builds them from module downloads.
+          allowed-domains: |
+            registry.npmjs.org
+            pypi.org
+            files.pythonhosted.org
+            proxy.golang.org
+            sum.golang.org
+            storage.googleapis.com
+          http-filter: |
+            github.com:
+              "*": GET, HEAD
+              "*/git-upload-pack": POST
+            api.github.com:
+              "*": GET, HEAD
+            release-assets.githubusercontent.com:
+              "*": GET, HEAD
+            registry.npmjs.org:
+              "*": GET, HEAD
+            pypi.org:
+              "*": GET, HEAD
+            files.pythonhosted.org:
+              "*": GET, HEAD
+            proxy.golang.org:
+              "*": GET, HEAD
+            sum.golang.org:
+              "*": GET, HEAD
+            storage.googleapis.com:
+              "*": GET, HEAD
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+
+      - run: npm ci --ignore-scripts
+
+      - run: pip install pre-commit==4.7.0
+
+      # no-commit-to-branch would fail every push to main; the ruleset already
+      # forbids direct pushes there.
+      - run: pre-commit run --all-files --show-diff-on-failure --color=always
+        env:
+          SKIP: no-commit-to-branch
