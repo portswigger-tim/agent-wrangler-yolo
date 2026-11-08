@@ -86,12 +86,14 @@ before merging, releasing or changing repo settings.
      (fix it, or reply in the thread with why not).
 5. Let auto-fix and auto-merge drive it: end your turn after attaching the PR
    and yield to the wrangler's PR notices. Don't poll.
-6. When a release PR is open and `main` is in the state you want to ship, merge
-   it. Check that the tag and GitHub release appeared.
-   A release PR opened by the release workflow's `GITHUB_TOKEN` never starts
-   CI, so its required checks sit at "expected" forever. Run
-   `gh pr close <n> && gh pr reopen <n>` (an event from you, which does start
-   CI), attach it with `set_links`, and let auto-merge take it.
+6. **Releasing.** When `main` holds something worth shipping, call
+   `yolo_release_pr`. It runs release-please as the human: SemVer bump from
+   your conventional commits, `CHANGELOG.md`, and a PR labelled
+   `autorelease: pending`. It starts CI like any PR of yours. Attach it with
+   `set_links`, `gh pr merge <n> --auto --squash`, and yield. After it merges,
+   the Release workflow tags `vX.Y.Z` and publishes the release; check both
+   exist (`gh release view vX.Y.Z`). Never create or move a `v*` tag by hand.
+   Calling it again later refreshes the open release PR with newer commits.
 
 ## Hard stops: ask the human first
 

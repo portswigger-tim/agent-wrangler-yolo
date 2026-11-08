@@ -88,7 +88,7 @@ for (const skill of ['yolo']) {
   if (entry?.skills?.includes(skill) && fs.existsSync(path.join(root, 'skills', skill, 'SKILL.md'))) ok(`skill ${skill}`);
   else fail(`skill ${skill} missing from the manifest or skills/${skill}/SKILL.md`);
 }
-const wantTools = ['yolo_audit_repo', 'yolo_harden_repo', 'yolo_spawn'];
+const wantTools = ['yolo_audit_repo', 'yolo_harden_repo', 'yolo_release_pr', 'yolo_spawn'];
 const gotTools = loaded.tools.filter((t) => t.extId === manifest.id).map((t) => t.name).sort();
 if (JSON.stringify(gotTools) === JSON.stringify(wantTools)) ok(`tools: ${gotTools.join(', ')}`);
 else fail(`tools are [${gotTools.join(', ')}], expected [${wantTools.join(', ')}]`);

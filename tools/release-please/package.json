@@ -1,0 +1,10 @@
+{
+  "name": "agent-wrangler-yolo-release-please",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The release-please CLI yolo_release_pr runs, pinned by this lockfile and installed on first use with npm ci --ignore-scripts.",
+  "license": "MIT",
+  "dependencies": {
+    "release-please": "17.11.2"
+  }
+}

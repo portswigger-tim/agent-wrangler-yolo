@@ -3,6 +3,7 @@ import { makeGh } from '../github/gh.js';
 import { runBaseline, detectRequiredChecks, MERGE_METHODS } from '../github/baseline.js';
 import { okResult, errorResult, NOT_ENROLLED } from './result.js';
 import { yoloSpawnTool } from './spawn.js';
+import { yoloReleasePrTool } from './release-pr.js';
 
 export { okResult, errorResult, NOT_ENROLLED };
 
@@ -79,6 +80,7 @@ export function makeTools({ makeClient = makeGh } = {}) {
       },
     },
     yoloSpawnTool,
+    yoloReleasePrTool,
   ];
 }
 

@@ -68,6 +68,23 @@ It reads flags with quoted strings removed, so a commit message that mentions th
 It's an early, explained refusal: if a command slips past a pattern, the server-side rulesets still
 hold. Codex sessions don't load Claude plugin hooks, so for them only the rulesets apply.
 
+## Releases
+
+SemVer from conventional commits, with release-please, split so that no workflow needs permission to
+open pull requests (the baseline keeps "Allow GitHub Actions to create and approve pull requests" off):
+
+1. The session calls `yolo_release_pr` (or `node scripts/release-pr.mjs`). It runs release-please as
+   the human's `gh` login and opens or refreshes a release PR labelled `autorelease: pending`. Because a
+   person opened it, CI runs like on any PR.
+2. The session sets auto-merge on that PR. Once it merges, the Release workflow
+   (`skip-github-pull-request: true`, `contents: write`) tags `vX.Y.Z` and publishes the GitHub release.
+   The tag ruleset makes the tag immutable, and immutable releases do the same for its assets.
+
+The CLI is pinned by `tools/release-please/package-lock.json` and installed on first use into the
+wrangler data dir with `npm ci --ignore-scripts`, so the extension itself stays light. The token
+goes to the CLI as a 0600 temp file, never on the command line. A repo needs
+`release-please-config.json` and `.release-please-manifest.json`.
+
 ## Hard stops
 
 The session asks you before it weakens a protection, rewrites history or tags, acts outside its
