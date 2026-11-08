@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/portswigger-tim/agent-wrangler-yolo/compare/v0.1.0...v0.2.0) (2026-11-08)
+
+
+### Features
+
+* prune merged local branches and report plan-limited controls ([#9](https://github.com/portswigger-tim/agent-wrangler-yolo/issues/9)) ([3b7043a](https://github.com/portswigger-tim/agent-wrangler-yolo/commit/3b7043a0a189988f7e70e7fc1df919282047f17d))
+* ship bootstrap templates for a repo's gate, CI and releases ([#8](https://github.com/portswigger-tim/agent-wrangler-yolo/issues/8)) ([259c940](https://github.com/portswigger-tim/agent-wrangler-yolo/commit/259c94009d56a2adb8746be22e96473fde99f200))
+
 ## 0.1.0 (2026-11-08)
 
 
