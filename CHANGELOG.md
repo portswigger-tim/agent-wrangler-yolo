@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/portswigger-tim/agent-wrangler-yolo/compare/v0.2.0...v0.3.0) (2026-11-08)
+
+
+### Features
+
+* keep the Mac awake while YOLO sessions are working ([#11](https://github.com/portswigger-tim/agent-wrangler-yolo/issues/11)) ([b1b2f4b](https://github.com/portswigger-tim/agent-wrangler-yolo/commit/b1b2f4bfc1011c1c3e408ccf1a60811c731daf5b))
+
 ## [0.2.0](https://github.com/portswigger-tim/agent-wrangler-yolo/compare/v0.1.0...v0.2.0) (2026-11-08)
 
 
