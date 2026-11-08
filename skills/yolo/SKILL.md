@@ -50,7 +50,10 @@ before merging, releasing or changing repo settings.
 2. CI must run `pre-commit run --all-files` and that job must be a required
    check, so a commit that skipped the local hooks still can't reach `main`.
 3. Never use `--no-verify`, `SKIP=`, `git push --force` to the default branch,
-   or `--admin` merges. If a hook fails, fix the cause.
+   or `--admin` merges. If a hook fails, fix the cause. In Claude sessions a
+   `YOLO guard` hook refuses these (and tag deletion, direct writes to
+   security settings, repo deletion) with a reason. A refusal is a hard stop,
+   not a puzzle: don't rephrase the command to get past it.
 
 ## Keep the repo hardened
 

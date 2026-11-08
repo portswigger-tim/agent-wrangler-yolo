@@ -51,6 +51,23 @@ it updates its own ruleset it keeps anything stricter a human added.
 
 Run it outside the wrangler with `node scripts/harden.mjs [repo-dir] [--apply]`.
 
+## Guardrail hook
+
+In Claude sessions, the `yolo` skill directory ships a `PreToolUse` hook (`skills/yolo/hooks/`).
+The wrangler loads it on every Claude launch while the extension is on, so it does nothing unless
+`AW_YOLO=1`. In a YOLO session it refuses, with a reason, any shell command that:
+
+- skips the gate: `--no-verify`, `git commit -n`, `SKIP=`, `pre-commit uninstall`, changing `core.hooksPath`
+- force-pushes without a lease, or force-pushes `main`/`master` at all
+- deletes a pushed tag or a release
+- writes a repo security setting directly with `gh api` (rulesets, Actions policy, CodeQL, Dependabot,
+  immutable releases, …), instead of through `yolo_harden_repo`
+- merges with `gh pr merge --admin`, or deletes, archives or changes the visibility of the repo
+
+It reads flags with quoted strings removed, so a commit message that mentions them still goes through.
+It's an early, explained refusal: if a command slips past a pattern, the server-side rulesets still
+hold. Codex sessions don't load Claude plugin hooks, so for them only the rulesets apply.
+
 ## Hard stops
 
 The session asks you before it weakens a protection, rewrites history or tags, acts outside its
@@ -88,5 +105,5 @@ AW_REPO=../agent-wrangler node scripts/validate-manifest.mjs   # the real loader
 3. Tools: `yolo_audit_repo` and `yolo_harden_repo` (done); `yolo_bootstrap_repo`.
 4. The dispatch-dialog switch, and `yolo_spawn` so children inherit YOLO, auto-merge and
    auto-fix. Done.
-5. A guardrail hook against destructive commands.
+5. A guardrail hook against destructive commands. Done.
 6. An end-to-end run on a sandbox repo.
