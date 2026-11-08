@@ -40,7 +40,7 @@ const ok = (msg) => console.log('✓', msg);
 //    install lays it out (discovery skips symlinks).
 const extDir = fs.mkdtempSync(path.join(os.tmpdir(), 'yolo-ext-'));
 const declared = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).wranglerExtension;
-fs.cpSync(root, path.join(extDir, declared.id), { recursive: true, filter: (src) => !src.includes(`${path.sep}.git`) && !src.includes(`${path.sep}node_modules`) });
+fs.cpSync(root, path.join(extDir, declared.id), { recursive: true, filter: (src) => !src.includes(`${path.sep}.git`) });
 const [found] = await discoverExternal({ dir: extDir, provenance: {} });
 if (!found) fail('discoverExternal found nothing');
 else if (found.quarantine) fail(`discovery quarantined: ${found.quarantine}`);
