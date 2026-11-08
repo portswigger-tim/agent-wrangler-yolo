@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { YoloStore } from './store.js';
-import { ensureReleasePlease, openReleasePr, TOOL_SRC, CONFIG_FILE, MANIFEST_FILE, PENDING_LABEL } from './release.js';
+import { ensureReleasePlease, openReleasePr, TOOL_SRC, CONFIG_FILE, MANIFEST_FILE } from './release.js';
 import { makeReleasePrTool } from './tools/release-pr.js';
 
 const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
@@ -53,7 +53,10 @@ test('openReleasePr passes the token as a 0600 file, never in argv, and removes 
     if (cmd === 'gh' && args[0] === 'auth') return { stdout: 'gho_secret\n' };
     if (cmd === 'gh' && args[0] === 'pr') {
       seen.list = args;
-      return { stdout: JSON.stringify([{ number: 9, url: 'https://x/9', title: 'chore(main): release 0.1.0', headRefName: 'release-please--branches--main' }]) };
+      return { stdout: JSON.stringify([
+        { number: 8, url: 'https://x/8', title: 'feat: unrelated', headRefName: 'feat/x' },
+        { number: 9, url: 'https://x/9', title: 'chore(main): release 0.1.0', headRefName: 'release-please--branches--main--components--r' },
+      ]) };
     }
     seen.argv = [cmd, ...args];
     const file = args[args.indexOf('--token') + 1];
@@ -70,8 +73,8 @@ test('openReleasePr passes the token as a 0600 file, never in argv, and removes 
   assert.equal(seen.mode, 0o600);
   assert.equal(fs.existsSync(seen.file), false);
   assert.ok(seen.argv.includes('--target-branch') && seen.argv.includes('main'));
-  assert.deepEqual(seen.list.slice(seen.list.indexOf('--label'), seen.list.indexOf('--label') + 2), ['--label', PENDING_LABEL]);
-  assert.equal(r.pulls[0].number, 9);
+  assert.deepEqual(seen.list.slice(seen.list.indexOf('--base'), seen.list.indexOf('--base') + 2), ['--base', 'main']);
+  assert.deepEqual(r.pulls.map((p) => p.number), [9], 'only release-please\'s branch, found without waiting for its label');
 });
 
 test('openReleasePr removes the token file even when the CLI fails', async () => {
