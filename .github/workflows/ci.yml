@@ -34,7 +34,7 @@ jobs:
       AW_REPO: ${{ github.workspace }}/agent-wrangler
     steps:
       # First, so its pre step locks down egress before any other step runs.
-      - uses: portswigger-tim/safer-runner-action@d9772c3c7c5c0f8cd6cb7123e138120b11c12371 # v2.2.1
+      - uses: portswigger-tim/safer-runner-action@ebd9bc0bc39df7c9b044ee698cbec5efc201a248 # v2.3.0
         with:
           mode: enforce
           allowed-domains: |
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: portswigger-tim/safer-runner-action@d9772c3c7c5c0f8cd6cb7123e138120b11c12371 # v2.2.1
+      - uses: portswigger-tim/safer-runner-action@ebd9bc0bc39df7c9b044ee698cbec5efc201a248 # v2.3.0
         with:
           mode: enforce
           # Comments go here, never inside the block below: the action reads
